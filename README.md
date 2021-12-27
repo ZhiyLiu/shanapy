@@ -61,7 +61,7 @@ The workflow of using s-reps can be summarized in the following chart.
 
 ---
 <a name="use"></a>
-## Usage
+## Installation
 1. (Optional) Download [SPHARM-PDM](https://www.nitrc.org/projects/spharm-pdm) according to your platform into `third_party/spharm_bin`.
 2. Install shanapy module as follows
 ```bash=
@@ -71,8 +71,9 @@ $ git clone https://github.com/ZhiyLiu/shanapy.git
 $ cd shanapy
 
 ## create & activate a virtual envirionment
-$ conda create -n shape_analysis python=3.7
-$ conda activate shape_analysis
+## assume the anaconda has been installed
+$ conda create -n shanapy python=3.7 anaconda
+$ source activate shanapy
 
 ## install required packages
 $ python -m pip install -r requirements.txt
@@ -80,84 +81,25 @@ $ python -m pip install -r requirements.txt
 ## install pyshanalysis
 $ python -m pip install -e .
 ```
-OR
-
-```bash=
-$ python -m pip install pyshana
-```
 ---
 <a name="example"></a>
 ## Example
 
-1. Simulate a label image of a standard ellipsoid
-```python=
-from itkwidgets import view
-import ellipsoid_simulator as es
-# generate itk image of a standard ellipsoid
-std_ell = es.generate_ellipsoid(ra=4, 
-                            rb=3, 
-                            rc=2,
-                            voxel_size=0.1, 
-                            center=(0, 0, 2.5))
-view(std_ell)
+### 1. Initialize and visualize a discrete s-rep for a hippocampus
+The example data (a hippocampus) is provided [here](data/example_hippocampus.vtk). The example code is in [this file](shanapy/test/test_initializer.py). To run the example,
+```bash=
+## Run the above installation before the following executions.
+## make sure the current directory is ~/shanapy/
+$ pwd
+$ python shanapy/test/test_initializer.py
 ```
-2. Simulate a label image of a deformed ellipsoid.
-
-```python=
-img_file_name = 'deformed_ell_label.nrrd'
-es.generate_ellipsoid( \
-                        bend=0.1,
-                        twist=0.1,
-                        center=(0, 0, 0),
-                        output_file_name=img_file_name)
-```
-3. Generate a triangle mesh for a general ellipsoid image.
-
-```python=
-import shape_model as sm
-img_file_name = 'deformed_ell_label.nrrd'
-sm.spharm_mesh(img_file_name, output_file_folder='./')
-```
-4. Fit an s-rep to a standard ellipsoid.
-
-```python=
-import srep_fitter as sf
-spoke_poly, rx, ry, rz = sf.fit_ellipsoid(ell_mesh)
-```
-
-5. Fit an s-rep to a general ellipsoid deformed from the standard one
-
-```python=
-import srep_fitter as sf
-spoke_poly, _, _, _ = sf.fit_srep(std_ell_mesh_file_name,
-                                deformed_top_mesh_file_name)
-```
-6. Simulate multi-object shapes and fit s-reps to configurations.
-
-```python=
-## fit two deformed ellipsoids in a configuration
-import srep_fitter as sf
-deformed_top_mesh_file_name = '../data/final_mesh/top0_label_SPHARM.vtk'
-deformed_bot_mesh_file_name = '../data/final_mesh/bot0_label_SPHARM.vtk'
-std_ell_mesh_file_name = '../data/final_mesh/std_ell_label_SPHARM.vtk'
-top_srep = sf.fit_srep(std_ell_mesh_file_name, deformed_top_mesh_file_name)
-bot_srep = sf.fit_srep(std_ell_mesh_file_name, deformed_bot_mesh_file_name)
-
-## visualize the s-rep and surface
-from viz import *
-reader = vtk.vtkPolyDataReader()
-reader.SetFileName(deformed_top_mesh_file_name)
-reader.Update()
-top_surface = reader.GetOutput()
-overlay_polydata(top_srep, top_surface)
-```
-
-
-
+The above commands result in a fitted s-rep the example hippocampus. Also, a visualization window should show as follows.
+![InitResult](figures/test_initializer_result.png)
+The transparent surface is the boundary of the hippocampus. The white line segments are discrete spokes connecting the skeleton and the boundary.
 ## Acknowledgement
 This project is adviced by Stephen M. Pizer, J. S. Marron and James N. Damon.
 J. Hong initiates this project. J. Vicory and B. Paniagua significantly contributed to this project.
 Thanks to M. Styner for providing insightful comments and experimental data.
-Special thanks to my great colleagues M. Taheri, N. Tapp-Hughes, A. Sharma and J. Schulz for their feedback and contributions.
+Special thanks to my great colleagues M. Taheri, N. Tapp-Hughes, A. Sharma and J. Schulz for their feedback and contributions. Special thanks for Jolie Zhu from JHU for her contributions in designing the logo.
 
 ###### tags: `Simulation` `Shape models` `Shape analysis`

@@ -9,7 +9,7 @@ setup(
   author_email = 'zhiy@cs.unc.edu',
   url = 'https://github.com/ZhiyLiu/',   # Provide either the link to your github or to your website
   download_url = 'https://github.com/ZhiyLiu/shanapy/archive/v_01.tar.gz',    # I explain this later on
-  keywords = ['Shape', 'Skeletal representation'],   # Keywords that define your package best
+  keywords = ['Shape analysis', 'Skeletal representation'],   # Keywords that define your package best
   install_requires=[            
           'vtk',
           'numpy',
