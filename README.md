@@ -7,8 +7,8 @@ SHANAPY: SHape ANAlysis PYthon package using s-reps
 ## Table of Contents
 
 1. [Introduction](#intro)
-2. [Usage](#use)
-3. [Example](#example)
+2. [Installation](#use)
+3. [Examples](#example)
 
 <a name="intro"></a>
 
@@ -96,6 +96,18 @@ $ python shanapy/test/test_initializer.py
 The above commands result in a fitted s-rep the example hippocampus. Also, a visualization window should show as follows.
 ![InitResult](figures/test_initializer_result.png)
 The transparent surface is the boundary of the hippocampus. The white line segments are discrete spokes connecting the skeleton and the boundary.
+### 2. Refine the above s-rep
+The example code for the refinement is in [this file](shanapy/test/test_refiner.py). To run the example,
+```bash=
+## Run the above installation before the following executions.
+## make sure the current directory is ~/shanapy/
+$ pwd
+$ python shanapy/test/test_refiner.py
+```
+The refinement yields a better fit s-rep, as shown below.
+![RefineResult](figures/test_refiner_result.png)
+The white line segments are from the above initial s-rep. The red line segments are from the refined s-rep. 
+The black arrow points to a spoke that was initially longer than expected but was refined due to the refinement algorithm.
 ## Acknowledgement
 This project is adviced by Stephen M. Pizer, J. S. Marron and James N. Damon.
 J. Hong initiates this project. J. Vicory and B. Paniagua significantly contributed to this project.
