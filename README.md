@@ -105,8 +105,8 @@ $ pwd
 $ python shanapy/test/test_refiner.py
 ```
 The refinement yields a better fit s-rep, as shown below.
-![RefineResult](figures/test_refiner_result.png)
-The white line segments are from the above initial s-rep. The red line segments are from the refined s-rep. 
+![RefineResult](figures/refined_srep.png)
+The orange line segments are from the above initial s-rep. The blue curve is the fold curve. 
 The black arrow points to a spoke that was initially longer than expected but was refined due to the refinement algorithm.
 ## Acknowledgement
 This project is adviced by Stephen M. Pizer, J. S. Marron and James N. Damon.

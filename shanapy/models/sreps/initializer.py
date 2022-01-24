@@ -1,14 +1,14 @@
 import vtk
 import numpy as np
 class Initializer:
-    def __init__(self):
+    def __init__(self, num_crest_points=24):
         """TODO: allow users to config the following parameters"""
         # the number of iterations of mean curvature flow
         self.iter_num = 500 
         # the flow step size
         self.dt = 0.001
         # determin the resolution of the discrete s-rep
-        self.num_crest_points = 24
+        self.num_crest_points = num_crest_points
     def _get_thin_plate_spline_deform(self, input_target_mesh, input_source_mesh):
         """Compute the deformation via thin plate spline
         from the input target mesh to the input source mesh.
