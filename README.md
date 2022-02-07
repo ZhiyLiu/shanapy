@@ -53,14 +53,18 @@ S-reps provide rich anatomical shape features. A user can select appropriate fea
 The features provided by s-reps include:
 
 (1) Geometric features of implied boundaries. S-reps can produce corruption-free smooth boundary mesh. Moreover, the implied boundary points have good correspondences across a population.
-See e.g.
-> Z. Liu et al., Non-Euclidean Analysis of Joint Variations in Multi-Object Shapes, 2021
 
 (2) Radial geometry from spokes. A spoke is represented by a tuple containing (a) coordinates of the base (skeletal) point (b) a unit direction vector in $\mathbb{R}^3$ and 
 (c) a positive scalar value that indicates the spoke's length.
 
 The workflow of using s-reps can be summarized in the following chart.
 ![Flowchart](figures/srep_fitting_workflow.png)
+
+Please cite and refer to the following papers for more details.
+
+> Z. Liu et al., Non-Euclidean Analysis of Joint Variations in Multi-Object Shapes, 2021
+
+> S. Pizer et al. Skeletons, Object Shape, Statistics, Frontiers in Computer Science, section Computer Vision, 2022
 
 ---
 <a name="use"></a>
@@ -132,7 +136,7 @@ The interpolation can convert a discrete s-rep to a continuous one, based on whi
 The example code can be found in [this file](shanapy/test/test_interpolater.py). Run the code similar to the above example. The following figure shows the interpolated spokes on one side of a hippocampal s-rep.
 ![Interpolate](figures/interpolate.png)
 
-
+---
 ## Acknowledgement
 
 This project is adviced by Stephen M. Pizer, J. S. Marron and James N. Damon.
