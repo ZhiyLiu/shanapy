@@ -6,9 +6,12 @@ SHANAPY: SHape ANAlysis PYthon package using s-reps
 
 ## Table of Contents
 
-1. [Introduction](#intro)
+1. [Introduction: what is an s-rep & why is it useful?](#intro)
 2. [Installation](#use)
 3. [Examples](#example)
+- [Initialize an s-rep](#initialize)
+- [Refine an s-rep](#refinement)
+- [Interpolate an s-rep for denser spokes](#interpolate)
 
 <a name="intro"></a>
 
@@ -81,11 +84,14 @@ $ python -m pip install -r requirements.txt
 ## install pyshanalysis
 $ python -m pip install -e .
 ```
+
 ---
+
 <a name="example"></a>
 ## Example
-
+<a name="initialize"></a>
 ### 1. Initialize and visualize a discrete s-rep for a hippocampus
+
 The example data (a hippocampus) is provided [here](data/example_hippocampus.vtk). The example code is in [this file](shanapy/test/test_initializer.py). To run the example,
 ```bash=
 ## Run the above installation before the following executions.
@@ -95,8 +101,13 @@ $ python shanapy/test/test_initializer.py
 ```
 The above commands result in a fitted s-rep the example hippocampus. Also, a visualization window should show as follows.
 ![InitResult](figures/test_initializer_result.png)
+
 The transparent surface is the boundary of the hippocampus. The white line segments are discrete spokes connecting the skeleton and the boundary.
+
+---
+<a name="refinement"></a>
 ### 2. Refine the above s-rep
+
 The example code for the refinement is in [this file](shanapy/test/test_refiner.py). To run the example,
 ```bash=
 ## Run the above installation before the following executions.
@@ -106,9 +117,24 @@ $ python shanapy/test/test_refiner.py
 ```
 The refinement yields a better fit s-rep, as shown below.
 ![RefineResult](figures/refined_srep.png)
+
 The orange line segments are from the above initial s-rep. The blue curve is the fold curve. 
 The black arrow points to a spoke that was initially longer than expected but was refined due to the refinement algorithm.
+
+---
+### <a name="interpolate"></a> 3. Interpolate an s-rep for denser spokes
+
+The interpolation can convert a discrete s-rep to a continuous one, based on which the implied level surfaces of radial distances can be generated. This algorithm takes in a discrete s-rep from the initialization or the refinement stage. The algorithm interpolates 
+- skeletal points
+- spokes' directions
+- spokes' lengths.
+
+The example code can be found in [this file](shanapy/test/test_interpolater.py). Run the code similar to the above example. The following figure shows the interpolated spokes on one side of a hippocampal s-rep.
+![Interpolate](figures/interpolate.png)
+
+
 ## Acknowledgement
+
 This project is adviced by Stephen M. Pizer, J. S. Marron and James N. Damon.
 J. Hong initiates this project. J. Vicory and B. Paniagua significantly contributed to this project.
 Thanks to M. Styner for providing insightful comments and experimental data.
