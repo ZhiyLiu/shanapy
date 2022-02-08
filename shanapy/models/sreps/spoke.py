@@ -18,7 +18,7 @@ class Spoke(object):
         if bdry_pt is not None:
             ## compute r, U from base_pt and bdry_pt
             assert base_pt is not None, "Need both the skeletal point and bdry point"
-            s = bdry_pt - base_pt
+            s = np.array(bdry_pt) - base_pt
             self.r = np.linalg.norm(s)
             self.U = s / self.r
     def scale(self, scale=1):

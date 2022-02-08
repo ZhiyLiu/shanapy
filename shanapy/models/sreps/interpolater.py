@@ -8,6 +8,7 @@ Date: Feb 5, 2022
 """
 import collections
 import sys
+from turtle import color
 from shanapy.models.sreps.spoke import Spoke
 import numpy as np
 from numpy import sin
@@ -38,30 +39,28 @@ class Interpolater(object):
     def __init__(self, interpolate_level=3):
         assert interpolate_level >= 0, "The interpolate_level has to be non-negative."
         self.interpolate_level = interpolate_level
+        self.interpolate_up = True
         
-    def _compute_derivative(self, input_srep, r, c, num_rows, num_cols):
+    def _compute_derivative(self, input_srep, r, c, num_crest_points, num_samples_outward):
         """Use finite difference to compute derivatives of skeletal positions"""
-
-        num_crest_points = num_rows * 2 + (num_cols - 2) * 2
-        num_cols = 1 + num_rows // 2
-        id = r * num_cols + c
+        id = r * num_samples_outward + c
         pt0 = pt1 = [0] * 3 # pt1 - pt0 for dxdu
         pt0v = pt1v = [0] * 3 # for dxdv
         base_pts_array = self._get_base_points_array(input_srep, num_crest_points)
         if r == 0:
             # first row
             pt0 = base_pts_array[id]
-            pt1 = base_pts_array[id+num_cols]
+            pt1 = base_pts_array[id+num_samples_outward]
             factor = 1.0
         elif r == num_crest_points - 1:
             # last row
             pt1 = base_pts_array[id]
-            pt0 = base_pts_array[id-num_cols]
+            pt0 = base_pts_array[id-num_samples_outward]
             factor = 1.0
         else:
             # otherwise
-            pt1 = base_pts_array[id + num_cols]
-            pt0 = base_pts_array[id - num_cols]
+            pt1 = base_pts_array[id + num_samples_outward]
+            pt0 = base_pts_array[id - num_samples_outward]
             factor = 0.5
         dxdu = [(pt1i - pt0i) * factor for pt1i, pt0i in zip(pt1, pt0)]
         # p = pv.Plotter()
@@ -73,7 +72,7 @@ class Interpolater(object):
             pt1v = base_pts_array[id+1]
             pt0v = base_pts_array[id]
             factor = 1.0
-        elif c == num_cols - 1:
+        elif c == num_samples_outward - 1:
             pt1v = base_pts_array[id]
             pt0v = base_pts_array[id-1]
             factor = 1.0
@@ -199,8 +198,9 @@ class Interpolater(object):
         Uvv_start = self._finite_difference_2nd_derivative(spoke_start, spoke_end)
 
         ## 2. compute the middle spoke
-        sum_rU = spoke_start.add(spoke_end)
-        avg_rU = sum_rU / 2
+        # sum_rU = spoke_start.add(spoke_end)
+        # avg_rU = sum_rU / 2
+        avg_rU = (spoke_start.r + spoke_end.r) / 2
         
         ## 3. compute the direction of the middle spoke
         half_dist = dist_from_start / 2
@@ -220,7 +220,7 @@ class Interpolater(object):
         inner_prod1 = np.dot(middle_dir, avg_rU)
         inner_prod2 = np.dot(start_dir, Uvv_start)
         inner_prod3 = np.dot(end_dir, Uvv_end)
-        middle_r = inner_prod1 - half_dist ** 2 * 0.25 * (inner_prod2 + inner_prod3)
+        middle_r = avg_rU #- half_dist ** 2 * 0.25 * (inner_prod2 + inner_prod3)
 
         middle_coords = (start_ri + end_ri)//2, (start_ci+end_ci) // 2
         middle_spoke = Spoke(middle_r, middle_dir, None, middle_coords)
@@ -356,7 +356,10 @@ class Interpolater(object):
         ret_array = []
         # the number of smooth point in both sides
         num_smooth_skeletal_pts = num_crest_points*3*2
-        for i in range(0, num_smooth_skeletal_pts, 2):
+        start, end = 0, num_smooth_skeletal_pts
+        if not self.interpolate_up:
+            start, end = start + num_smooth_skeletal_pts, end + num_smooth_skeletal_pts
+        for i in range(start, end, 2):
             spoke = np.array(srep.GetPoint(i+1)) - np.array(srep.GetPoint(i))
             spoke_len = np.linalg.norm(spoke)
 
@@ -367,7 +370,10 @@ class Interpolater(object):
         ret_array = []
         # the number of smooth point in both sides
         num_smooth_skeletal_pts = num_crest_points*3*2
-        for i in range(0, num_smooth_skeletal_pts, 2):
+        start, end = 0, num_smooth_skeletal_pts
+        if not self.interpolate_up:
+            start, end = start + num_smooth_skeletal_pts, end + num_smooth_skeletal_pts
+        for i in range(start, end, 2):
             spoke = np.array(srep.GetPoint(i+1)) - np.array(srep.GetPoint(i))
             spoke_len = np.linalg.norm(spoke)
             spoke_dir = spoke / spoke_len
@@ -378,7 +384,10 @@ class Interpolater(object):
         ret_base_pts = []
         # the number of smooth point in both sides
         num_smooth_skeletal_pts = num_crest_points*3*2
-        for i in range(0, num_smooth_skeletal_pts, 2):
+        start, end = 0, num_smooth_skeletal_pts
+        if not self.interpolate_up:
+            start, end = start + num_smooth_skeletal_pts, end + num_smooth_skeletal_pts
+        for i in range(start, end, 2):
             ret_base_pts.append(np.array(srep.GetPoint(i)))
         return ret_base_pts
     
@@ -389,11 +398,11 @@ class Interpolater(object):
             bdry_pt = np.array(input_srep.GetPoint(i+1))
             ret_spokes.append(Spoke(base_pt=base_pt, bdry_pt=bdry_pt))
         return ret_spokes
-    def _interpolate_dir_on_radial_line(self, input_srep, interpolate_level, num_rows, num_cols):
+    def _interpolate_dir_on_radial_line(self, input_srep, interpolate_level, num_crest_points, num_samples_outward):
         """Interpolate directions of spokes that are based on radial lines of a skeleton."""
-        num_crest_points = num_rows * 2 + (num_cols - 2) * 2
+        # num_crest_points = num_rows * 2 + (num_cols - 2) * 2
         num_steps = np.power(2, interpolate_level)
-        num_samples_outward = 1 + num_rows // 2
+        # num_samples_outward = 1 + num_rows // 2
         step_size = 1.0 / num_steps
         dirs_da = self._get_spoke_dirs(input_srep, num_crest_points)
         pts = self._get_base_points_array(input_srep, num_crest_points)
@@ -437,21 +446,165 @@ class Interpolater(object):
         step_size = 1.0 / num_steps
         for r in range(num_crest_points):
             for c in range(num_samples_outward -1):
-                for ri in range(num_steps + 1):
-                    for ci in range(num_steps + 1):
-                        total_ci = c * num_steps + ci
-                        total_ri = r * num_steps + ri
-                        control_directions = np.concatenate((interp_radial_dirs[:, total_ci, :], interp_radial_dirs[0:1, total_ci, :]))
-                            
-                        key_times = [i for i in range(control_directions.shape[0])]
-                        key_rots = R.from_rotvec(control_directions)
+                # for ri in range(num_steps + 1):
+                for ci in range(num_steps + 1):
+                    total_ci = c * num_steps + ci
+                    # total_ri = r * num_steps + ri
+                    control_directions = np.concatenate((interp_radial_dirs[:, total_ci, :], interp_radial_dirs[0:1, total_ci, :]))
                         
-                        slerp = Slerp(key_times, key_rots)
-                        interp_times = np.arange(0, num_crest_points + step_size, step_size)
-                        interp_radial_rots = slerp(interp_times).as_rotvec()
-                        
-                        self.interp_circular_dirs[total_ci] = interp_radial_rots
-    def interpolate(self, input_srep, num_rows, num_cols):
+                    key_times = [i for i in range(control_directions.shape[0])]
+                    key_rots = R.from_rotvec(control_directions)
+                    
+                    slerp = Slerp(key_times, key_rots)
+                    interp_times = np.arange(0, num_crest_points + step_size, step_size)
+                    interp_radial_rots = slerp(interp_times).as_rotvec()
+                    
+                    self.interp_circular_dirs[total_ci] = interp_radial_rots
+    def _interp_along_spline(self, pts, num_steps):
+        """Interpolate crest points along a spline defined by pts of dimension (n x 3)"""
+        radial_spline = vtk.vtkParametricSpline()
+            
+        spline_pts = vtk.vtkPoints()
+        for pt in pts:
+            spline_pts.InsertNextPoint(pt)
+        radial_spline.SetPoints(spline_pts)
+        interp_crest_pts = []
+        for k in range(num_steps+1):
+            interp_u = [1/ num_steps * k] * 3
+            pt = [0] * 3
+            radial_spline.Evaluate(interp_u, pt,[0]*9)
+            interp_crest_pts.append(pt)
+        # func_src = vtk.vtkParametricFunctionSource()
+        # func_src.SetParametricFunction(radial_spline)
+        # func_src.Update()
+        return interp_crest_pts
+    
+    def interpolate_crest(self, input_srep, top_spokes, bot_spokes, num_crest_points):
+        """
+        Interpolate spokes around the crest region. 
+        Input input_srep is the primary spokes, including top, bot and crest spokes
+        Input up_spokes and down_spokes are results from the method self.interpolate
+        Input num_crest_points is the number of the primary crest spokes
+
+        """
+        num_steps = np.power(2, self.interpolate_level)
+        num_interp_crest_pts = len(top_spokes)
+        primary_crest_start_idx = num_crest_points * 3 * 2 * 2
+        prim_crest_pts = vtk.vtkPoints()
+        prim_fold_pts = vtk.vtkPoints()
+        for i in range(0, num_interp_crest_pts, num_steps):
+            prim_crest_base_pt = np.array(input_srep.GetPoint(primary_crest_start_idx + (i//num_steps) * 2))
+            prim_crest_bdry_pt = np.array(input_srep.GetPoint(primary_crest_start_idx + (i//num_steps) * 2 + 1))
+            prim_crest_pts.InsertNextPoint(prim_crest_bdry_pt)
+            prim_fold_pts.InsertNextPoint(prim_crest_base_pt)
+            
+        tps = vtk.vtkThinPlateSplineTransform()
+        tps.SetSourceLandmarks(prim_fold_pts)
+        tps.SetTargetLandmarks(prim_crest_pts)
+        tps.SetBasisToR()
+        tps.Modified()
+        ## interpolate along the crest curve
+        crest_pts = []
+        p = pv.Plotter()
+        top_crest_pts = []
+        bot_crest_pts = []
+        top_crest_spokes, bot_crest_spokes = [], []
+        p = pv.Plotter()
+        p.add_mesh(input_srep, line_width=2, color='white', label='Input')
+        for i in range(num_interp_crest_pts):
+            crest_bdry_pt = tps.TransformPoint(top_spokes[i][-1].p)
+            crest_pts.append(crest_bdry_pt)
+
+            ## interpolate crest points along primary crest points
+            top_control_pts = [top_spokes[i][-1].getB(), crest_bdry_pt]
+            top_interp_crest_pts = self._interp_along_spline(top_control_pts, num_steps)
+            bot_control_pts = [bot_spokes[i][-1].getB(), crest_bdry_pt]
+            bot_interp_crest_pts = self._interp_along_spline(bot_control_pts, num_steps)
+            top_crest_pts += top_interp_crest_pts
+            bot_crest_pts += bot_interp_crest_pts
+
+            for j in range(len(top_interp_crest_pts)):
+                top_spoke = Spoke(base_pt=top_spokes[i][-1].p, bdry_pt=top_interp_crest_pts[j])
+                top_crest_spokes.append(top_spoke)
+                p.add_mesh(top_spoke.visualize(), color='orange', line_width=4)
+
+                bot_spoke = Spoke(base_pt=bot_spokes[i][-1].p, bdry_pt=bot_interp_crest_pts[j])
+                bot_crest_spokes.append(bot_spoke)
+                p.add_mesh(bot_spoke.visualize(), color='blue', line_width=4)
+                
+
+            ######## The following visualization helps debugging
+            # p = pv.Plotter()
+            # p.add_mesh(input_srep, line_width=2, color='white', label='Input')
+            
+            p.add_mesh(pv.PolyData(np.array(top_interp_crest_pts)), color='orange', label='Interp', point_size=10)
+            p.add_mesh(pv.PolyData(np.array(bot_interp_crest_pts)), color='blue', label='Interp', point_size=10)
+            
+        # p.add_mesh(pv.Spline(np.array(crest_pts + [crest_pts[0]])), color='cyan', label='Crest spline', line_width=4)
+        # p.add_mesh(pv.PolyData(np.array(crest_pts)), color='cyan', label='Crest pts', point_size=20)
+        # p.add_legend()
+        # p.show()
+        # p.add_mesh(input_srep, line_width=2, color='white', label='Input')   
+        # p.add_mesh(pv.Spline(np.array(crest_pts + [crest_pts[0]])), color='cyan', label='Crest spline', line_width=4)
+        # p.add_mesh(pv.PolyData(np.array(crest_pts)), color='cyan', label='Crest pts', point_size=20)
+        # p.add_legend()
+        # p.show()
+            #################
+        # crest_poly = self._connect_crest_poly(top_crest_pts, bot_crest_pts, num_steps)
+        # p.add_mesh(crest_poly,  color='cyan', label='crest')
+        p.show()
+        return top_crest_spokes + bot_crest_spokes
+    def _connect_crest_poly(self, top_crest_pts, bot_crest_pts, num_steps):
+        top_crest_poly = vtk.vtkPolyData()
+        top_crest_ps = vtk.vtkPoints()
+        top_crest_con = vtk.vtkCellArray()
+
+        bot_crest_poly = vtk.vtkPolyData()
+        bot_crest_ps = vtk.vtkPoints()
+        bot_crest_con = vtk.vtkCellArray()
+        def new_triangle(id_curr_pt, id_pt_below, id_pt_right, id_pt_bot_right):
+            triangle = vtk.vtkTriangle()
+            triangle.GetPointIds().SetId(0, id_curr_pt)
+            triangle.GetPointIds().SetId(1, id_pt_below)
+            triangle.GetPointIds().SetId(2, id_pt_right)
+
+            triangle2 = vtk.vtkTriangle()
+            triangle2.GetPointIds().SetId(0, id_pt_right)
+            triangle2.GetPointIds().SetId(1, id_pt_below)
+            triangle2.GetPointIds().SetId(2, id_pt_bot_right)
+            return triangle, triangle2
+
+        for i in range(len(top_crest_pts)):
+            id_curr_pt = top_crest_ps.InsertNextPoint(top_crest_pts[i])
+            
+            bot_crest_ps.InsertNextPoint(bot_crest_pts[i])
+            if i == 0 or (i+1) % (num_steps+1) != 0:
+                id_pt_below = (id_curr_pt + 1)% len(top_crest_pts)
+                id_pt_right = (id_curr_pt + num_steps + 1) % len(top_crest_pts)
+                id_pt_bot_right = (id_pt_right+1) % len(top_crest_pts)
+                top_tri1, top_tri2 = new_triangle(id_curr_pt, id_pt_below, id_pt_right, id_pt_bot_right)
+                bot_tri1, bot_tri2 = new_triangle(id_curr_pt, id_pt_below, id_pt_right, id_pt_bot_right)
+                
+                top_crest_con.InsertNextCell(top_tri1)
+                bot_crest_con.InsertNextCell(bot_tri1)
+
+                top_crest_con.InsertNextCell(top_tri2)
+                bot_crest_con.InsertNextCell(bot_tri2)
+                
+        top_crest_poly.SetPoints(top_crest_ps)
+        bot_crest_poly.SetPoints(bot_crest_ps)
+        top_crest_poly.SetPolys(top_crest_con)
+        bot_crest_poly.SetPolys(bot_crest_con)
+        top_crest_poly.Modified()
+                
+        appender = vtk.vtkAppendPolyData()
+        appender.AddInputData(top_crest_poly)
+        appender.AddInputData(bot_crest_poly)
+        appender.Update()
+        return appender.GetOutput()
+
+
+    def interpolate(self, input_srep, num_crest_points, num_samples_outward):
         """
         main entry of interpolation
         """
@@ -464,29 +617,30 @@ class Interpolater(object):
         step_size = 1.0 / num_steps
 
         interpolated_spokes = vtk.vtkAppendPolyData()
-        num_crest_points = num_rows * 2 + (num_cols - 2) * 2
-        num_samples_outward = 1 + num_rows // 2
-        
+        num_interp_each_radial_line = (num_steps - 1) * (num_samples_outward - 1) + num_samples_outward
         ## Dimension num_crest_point x num_interp_each_radial_line x 3
-        interp_radial_dirs = self._interpolate_dir_on_radial_line(input_srep, interpolate_level, num_rows, num_cols)
+        interp_radial_dirs = self._interpolate_dir_on_radial_line(input_srep, interpolate_level, num_crest_points, num_samples_outward)
         self._interpolate_dirs(interp_radial_dirs, num_crest_points, num_samples_outward, num_steps)
-        
+        ## save outmost interior spokes  along radial lines for interpolating crest spokes
+        ret_spokes = collections.defaultdict(list)
+        # p = pv.Plotter()
+        # p.add_mesh(input_srep, color='white')
         for r in range(num_crest_points):
             for c in range(num_samples_outward -1):
                 next_row = r + 1 # next radial line index
                 # compute positional derivatives for 4 corners
                 if r == num_crest_points - 1:
-                    dxdu11, dxdv11 = self._compute_derivative(input_srep, r, c, num_rows, num_cols)
-                    dxdu21, dxdv21 = self._compute_derivative(input_srep, 0, c, num_rows, num_cols)
-                    dxdu12, dxdv12 = self._compute_derivative(input_srep, r, c+1, num_rows, num_cols)
-                    dxdu22, dxdv22 = self._compute_derivative(input_srep, 0, c+1, num_rows, num_cols)
+                    dxdu11, dxdv11 = self._compute_derivative(input_srep, r, c,   num_crest_points, num_samples_outward)
+                    dxdu21, dxdv21 = self._compute_derivative(input_srep, 0, c,   num_crest_points, num_samples_outward)
+                    dxdu12, dxdv12 = self._compute_derivative(input_srep, r, c+1, num_crest_points, num_samples_outward)
+                    dxdu22, dxdv22 = self._compute_derivative(input_srep, 0, c+1, num_crest_points, num_samples_outward)
                     next_row = 0
 
                 else:
-                    dxdu11, dxdv11 = self._compute_derivative(input_srep, r, c, num_rows, num_cols)
-                    dxdu21, dxdv21 = self._compute_derivative(input_srep, r+1, c, num_rows, num_cols)
-                    dxdu12, dxdv12 = self._compute_derivative(input_srep, r, c+1, num_rows, num_cols)
-                    dxdu22, dxdv22 = self._compute_derivative(input_srep, r+1, c+1, num_rows, num_cols)
+                    dxdu11, dxdv11 = self._compute_derivative(input_srep, r, c,    num_crest_points, num_samples_outward)
+                    dxdu21, dxdv21 = self._compute_derivative(input_srep, r+1, c,  num_crest_points, num_samples_outward)
+                    dxdu12, dxdv12 = self._compute_derivative(input_srep, r, c+1,  num_crest_points, num_samples_outward)
+                    dxdu22, dxdv22 = self._compute_derivative(input_srep, r+1, c+1,num_crest_points, num_samples_outward)
 
                 corner_deriv = dxdu11, dxdv11, dxdu21, dxdv21, dxdu12, dxdv12, dxdu22, dxdv22
                 
@@ -528,9 +682,8 @@ class Interpolater(object):
                 corner_spokes = sp11, sp12, sp21, sp22
 
                 ######## The following visualization helps debugging
-                # p = pv.Plotter()
-                # p.add_mesh(input_srep, color='white')
-                # p.add_mesh(self.surf_mesh, color='white', opacity=0.3)
+                # if r != num_crest_points - 1: continue
+                
                 
                 # p.add_mesh(sp11.visualize(), line_width=4, color='red')
                 # p.add_mesh(sp12.visualize(), line_width=4, color='yellow')
@@ -549,9 +702,13 @@ class Interpolater(object):
                         if r > 0 and ri == 0:
                             ## To avoid redundent interpolation on the boundary of quads
                             continue
+                        if r == num_crest_points - 1 and ri == num_steps:
+                            ## To avoid redundent interpolation at the circular starting radial line
+                            continue
                         if r > num_crest_points//2 and c == 0 and ci == 0:
                             ## To avoid redundent interpolation on the spine
                             continue
+                        
                         total_ci = c * num_steps + ci
                         total_ri = r * num_steps + ri
                         
@@ -562,7 +719,10 @@ class Interpolater(object):
                         
                         ## Look up the pre-interpolated directions
                         interpolated_dir = self._get_interpolated_dirs(total_ri, total_ci)
-                        # p.add_mesh(pv.Arrow(interp_skeletal_pt, interpolated_dir, scale=2), color='red', line_width=1)
+                        # if ri in [0, num_steps]:
+                        #     p.add_mesh(pv.Arrow(interp_skeletal_pt, interpolated_dir, scale=2), color='red', label='tau_1')
+                        # elif ci in [0, num_steps] and c == 1:
+                        #     p.add_mesh(pv.Arrow(interp_skeletal_pt, interpolated_dir, scale=2), color='cornflowerblue', label='theta')
 
                         ## interpolate spoke radii by a successive subdivision
                         interpolated_spoke = self._interpolate_quad(relative_position, corner_spokes, 1.0)
@@ -570,9 +730,14 @@ class Interpolater(object):
                         interpolated_spoke.U = interpolated_dir
                         interpolated_spokes.AddInputData(interpolated_spoke.visualize())
                         interpolated_spokes.Update()
+
+                        ## save outmost interior spokes and middle spokes along radial lines for interpolating crest spokes
+                        # if total_ci == num_interp_each_radial_line - 1 or ci == num_steps // 2 or ci == num_steps:
+                        ret_spokes[total_ri].append(interpolated_spoke)
                         
         #     p.add_mesh(interpolated_spokes.GetOutput(), color='red', line_width=4)
+        
         # p.show()
                 
-        return interpolated_spokes.GetOutput()
+        return interpolated_spokes.GetOutput(), ret_spokes
     

@@ -142,6 +142,6 @@ The example code can be found in [this file](shanapy/test/test_interpolater.py).
 This project is adviced by Stephen M. Pizer, J. S. Marron and James N. Damon.
 J. Hong initiates this project. J. Vicory and B. Paniagua significantly contributed to this project.
 Thanks to M. Styner for providing insightful comments and experimental data.
-Special thanks to my great colleagues M. Taheri, N. Tapp-Hughes, A. Sharma and J. Schulz for their feedback and contributions. 
+Special thanks to my great colleagues A. Krishna, M. Taheri, N. Tapp-Hughes, A. Sharma and J. Schulz for their feedback and contributions. 
 
 ###### tags: `Simulation` `Shape models` `Shape analysis`
