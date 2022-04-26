@@ -12,6 +12,7 @@ SHANAPY: SHape ANAlysis PYthon package using s-reps
 - [Initialize an s-rep](#initialize)
 - [Refine an s-rep](#refinement)
 - [Interpolate an s-rep for denser spokes](#interpolate)
+- [Fit Principal Nested Spheres (PNS) to non-Euclidean data](#pns)
 
 <a name="intro"></a>
 
@@ -82,8 +83,8 @@ $ cd shanapy
 $ conda create -n shanapy python=3.7 anaconda
 $ source activate shanapy
 
-## install required packages
-$ python -m pip install -r requirements.txt
+## install required packages (optional)
+## $ python -m pip install -r requirements.txt
 
 ## install pyshanalysis
 $ python -m pip install -e .
@@ -98,7 +99,7 @@ $ python -m pip install -e .
 
 The example data (a hippocampus) is provided [here](data/example_hippocampus.vtk). The example code is in [this file](shanapy/test/test_initializer.py). To run the example,
 ```bash=
-## Run the above installation before the following executions.
+## The required additional packages can be installed via pip.
 ## make sure the current directory is ~/shanapy/
 $ pwd
 $ python shanapy/test/test_initializer.py
@@ -114,7 +115,7 @@ The transparent surface is the boundary of the hippocampus. The white line segme
 
 The example code for the refinement is in [this file](shanapy/test/test_refiner.py). To run the example,
 ```bash=
-## Run the above installation before the following executions.
+## The required additional packages can be installed via pip.
 ## make sure the current directory is ~/shanapy/
 $ pwd
 $ python shanapy/test/test_refiner.py
@@ -136,6 +137,19 @@ The interpolation can convert a discrete s-rep to a continuous one, based on whi
 The example code can be found in [this file](shanapy/test/test_interpolater.py). Run the code similar to the above example. The following figure shows the interpolated spokes on one side of a hippocampal s-rep.
 ![Interpolate](figures/interpolate.png)
 
+---
+### <a name="pns"></a> 4. Fit PNS model
+
+[PNS](https://github.com/sungkyujung/PNS) captures principal components of data distributed on a unit hypersphere. The PNS scores are taken as Euclidean representations of non-Euclidean data, which has shown notable statistical advantages (see `Pizer et al. Object Shape Representation via Skeletal Models (s-reps) and Statistical Analysis, 2019`).
+
+The example code in [test_pns.py](shanapy/test/test_pns.py) demonstrates Euclideanizing spherical [data](shanapy/data/toy_example_small_circle.mat) (on $\mathbb{S}^2$) via PNS and then comparing PNS components with PCA components. The [comparison](shanapy/figures/cmp_pns_pca.png) shows that PNS components are more statistically efficient. To reproduce the comparison,  
+
+```bash=
+## The required additional packages can be installed via pip.
+## make sure the current directory is ~/shanapy/
+$ pwd
+$ python shanapy/test/test_pns.py
+```
 ---
 ## Acknowledgement
 
