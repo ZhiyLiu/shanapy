@@ -142,7 +142,7 @@ The example code can be found in [this file](shanapy/test/test_interpolater.py).
 
 [PNS](https://github.com/sungkyujung/PNS) captures principal components of data distributed on a unit hypersphere. The PNS scores are taken as Euclidean representations of non-Euclidean data, which has shown notable statistical advantages (see `Pizer et al. Object Shape Representation via Skeletal Models (s-reps) and Statistical Analysis, 2019`).
 
-The example code in [test_pns.py](shanapy/test/test_pns.py) demonstrates Euclideanizing spherical [data](shanapy/data/toy_example_small_circle.mat) (on $\mathbb{S}^2$) via PNS and then comparing PNS components with PCA components. The [comparison](shanapy/figures/cmp_pns_pca.png) shows that PNS components are more statistically efficient. To reproduce the comparison,  
+The example code in [test_pns.py](shanapy/test/test_pns.py) demonstrates Euclideanizing spherical [data](https://github.com/ZhiyLiu/shanapy/raw/main/data/toy_example_small_circle.mat) (on $\mathbb{S}^2$) via PNS and then comparing PNS components with PCA components. The [comparison](https://github.com/ZhiyLiu/shanapy/blob/main/figures/cmp_pns_pca.png) shows that PNS components are more statistically efficient. To reproduce the comparison,  
 
 ```bash=
 ## The required additional packages can be installed via pip.
