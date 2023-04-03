@@ -1,4 +1,7 @@
-"""This file is testing the refiner implemented in shanapy/models/sreps"""
+"""
+This file is testing the refiner implemented in shanapy/models/sreps
+Run this script in the root directory, e.g., ~/shanapy/
+"""
 from shanapy.models.sreps.refiner import Refiner
 import vtk
 from shanapy.models.sreps import Initializer, refiner
@@ -30,4 +33,4 @@ fold_pts.append(fold_pts[0])
 
 ## Visualize the s-rep and the input mesh
 viewer = SrepViewer()
-viewer.view(fold_pts, refined_srep, input_mesh)
+viewer.srep_with_fold_in_surface(fold_pts, refined_srep, input_mesh)
