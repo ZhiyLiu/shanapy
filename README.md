@@ -1,12 +1,9 @@
 SHANAPY: SHape ANAlysis PYthon package using s-reps
 ===
 This repository is the codebase of the following articles:
-```
-Liu, Z., Hong, J., Vicory, J., Damon, J.N. and Pizer, S.M., 2021. Fitting unbranching skeletal structures to objects. Medical image analysis, 70, p.102020.
-```
-```
-Liu, Z., Schulz, J., Taheri, M., Styner, M., Damon, J., Pizer, S. and Marron, J.S., 2022. Analysis of joint shape variation from multi-object complexes. Journal of Mathematical Imaging and Vision, pp.1-21.
-```
+> Liu, Z., Hong, J., Vicory, J., Damon, J.N. and Pizer, S.M., 2021. Fitting unbranching skeletal structures to objects. Medical image analysis, 70, p.102020.
+
+> Liu, Z., Schulz, J., Taheri, M., Styner, M., Damon, J., Pizer, S. and Marron, J.S., 2022. Analysis of joint shape variation from multi-object complexes. Journal of Mathematical Imaging and Vision, pp.1-21.
 
 ## Table of Contents
 
