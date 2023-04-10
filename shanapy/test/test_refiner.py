@@ -89,4 +89,4 @@ fold_pts.append(fold_pts[0])
 
 ## Visualize the s-rep and the input mesh
 viewer = SrepViewer()
-viewer.srep_with_fold_in_surface(fold_pts, refined_srep, input_mesh, srep_poly)
+viewer.srep_with_fold_in_surface(fold_pts, refined_srep, input_mesh)

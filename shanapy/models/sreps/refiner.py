@@ -74,11 +74,7 @@ class Refiner:
             dir_array[i, :] = direction
             base_array[i, :] = base_pt
 
-        # from scipy import optimize as opt
-        # minimum = opt.fmin(obj_func, radii_array)
-
-        # minimizer = minimum[0]
-        def obj_func(radii, grad=None):
+        def obj_func(opt_vars, grad=None):
             """
             Square of signed distance from tips
             of spokes to the input_mesh
@@ -86,7 +82,8 @@ class Refiner:
             implicit_distance = vtk.vtkImplicitPolyDataDistance()
             implicit_distance.SetInput(self.input_mesh)
             total_loss = 0
-            for i, radius in enumerate(radii):
+            for i in range(num_spokes):
+                radius    = radii_array[i]
                 direction = dir_array[i, :]
                 base_pt   = base_array[i, :]
                 bdry_pt   = base_pt + radius * direction
@@ -95,11 +92,12 @@ class Refiner:
                 total_loss += dist ** 2
             return total_loss
         ### optimize the variables (i.e., radii, directions)
-
-        opt = nlopt.opt(nlopt.LN_NEWUOA, len(radii_array))
+        opt_vars = np.concatenate((radii_array, dir_array.flatten()))
+        opt = nlopt.opt(nlopt.LN_NEWUOA, len(opt_vars))
         opt.set_min_objective(obj_func)
         opt.set_maxeval(2000)
-        minimizer = opt.optimize(radii_array)
+        minimizer = opt.optimize(opt_vars)
+        min_dirs = np.reshape(minimizer[num_spokes:], (-1, 3))
 
         ## update radii of s-rep and return the updated
         arr_length = vtk.vtkDoubleArray()
@@ -109,12 +107,13 @@ class Refiner:
         arr_dirs = vtk.vtkDoubleArray()
         arr_dirs.SetNumberOfComponents(3)
         arr_dirs.SetName("spokeDirection")
+        print(num_spokes)
         for i in range(num_spokes):
             id_base_pt = i * 2
             id_bdry_pt = id_base_pt + 1
             base_pt = base_array[i, :]
             radius = minimizer[i]
-            direction = dir_array[i, :]
+            direction = min_dirs[i, :]
 
             new_bdry_pt = base_pt + radius * direction
             arr_length.InsertNextValue(radius)
