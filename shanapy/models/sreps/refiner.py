@@ -1,6 +1,6 @@
 """
 The refinement aims to optimize the interior geometry represented by the s-rep.
-This optimization ought to consider i) the goodness of fitting to the boundary geometry and 
+This optimization ought to consider i) the goodness of fitting to the boundary geometry and
 ii) the smoothness of interior radial distance level surfaces.
 As of Dec. 27, 2021, the refinement in this python package can optimize the spokes' lengths.
 """
@@ -10,9 +10,10 @@ import vtk
 import nlopt
 class Refiner:
     """This class optimize an initial s-rep to better fit to the boundary"""
-    def __init__(self):
+    def __init__(self, surface_mesh):
         ## TODO: Set parameters of refinement
         self.eps = np.finfo(float).eps
+        self.input_mesh = surface_mesh
         pass
     def relocate(self, bdry_pt, input_mesh):
         """
@@ -42,12 +43,12 @@ class Refiner:
             pt_id = pt_ids.GetId(i)
             mean_curvature.append(mean_curvatures.GetPointData().GetArray(0).GetValue(pt_id))
         return 1/ np.mean(mean_curvature)
-    
-    def refine(self, srep, input_mesh, num_crest_points=24):
+
+
+    def refine(self, srep, num_crest_points=24):
         """
         The main entry of the refinement
         Input: an initial s-rep  srep
-        Input: the boundary mesh input_mesh
         Return spokes poly (a set of spokes that can be visualized) and fold points
         """
         print('Refining ...')
@@ -72,15 +73,17 @@ class Refiner:
             radii_array[i] = radius
             dir_array[i, :] = direction
             base_array[i, :] = base_pt
-        def obj_func(radii, grad=None):
+
+        def obj_func(opt_vars, grad=None):
             """
             Square of signed distance from tips
             of spokes to the input_mesh
             """
             implicit_distance = vtk.vtkImplicitPolyDataDistance()
-            implicit_distance.SetInput(input_mesh)
+            implicit_distance.SetInput(self.input_mesh)
             total_loss = 0
-            for i, radius in enumerate(radii):
+            for i in range(num_spokes):
+                radius    = radii_array[i]
                 direction = dir_array[i, :]
                 base_pt   = base_array[i, :]
                 bdry_pt   = base_pt + radius * direction
@@ -88,17 +91,13 @@ class Refiner:
                 dist = implicit_distance.FunctionValue(bdry_pt)
                 total_loss += dist ** 2
             return total_loss
-        # from scipy import optimize as opt
-        # minimum = opt.fmin(obj_func, radii_array)
-
-        # minimizer = minimum[0]
-
-        ### optimize the variables (i.e., radii)
-        
-        opt = nlopt.opt(nlopt.LN_NEWUOA, len(radii_array))
+        ### optimize the variables (i.e., radii, directions)
+        opt_vars = np.concatenate((radii_array, dir_array.flatten()))
+        opt = nlopt.opt(nlopt.LN_NEWUOA, len(opt_vars))
         opt.set_min_objective(obj_func)
         opt.set_maxeval(2000)
-        minimizer = opt.optimize(radii_array)
+        minimizer = opt.optimize(opt_vars)
+        min_dirs = np.reshape(minimizer[num_spokes:], (-1, 3))
 
         ## update radii of s-rep and return the updated
         arr_length = vtk.vtkDoubleArray()
@@ -108,22 +107,23 @@ class Refiner:
         arr_dirs = vtk.vtkDoubleArray()
         arr_dirs.SetNumberOfComponents(3)
         arr_dirs.SetName("spokeDirection")
+        print(num_spokes)
         for i in range(num_spokes):
             id_base_pt = i * 2
             id_bdry_pt = id_base_pt + 1
             base_pt = base_array[i, :]
             radius = minimizer[i]
-            direction = dir_array[i, :]
+            direction = min_dirs[i, :]
 
             new_bdry_pt = base_pt + radius * direction
             arr_length.InsertNextValue(radius)
             arr_dirs.InsertNextTuple(direction)
             srep_poly.GetPoints().SetPoint(id_bdry_pt, new_bdry_pt)
 
-            ### relocate base points for fold spokes such that their lengths are reciprocal of boundary mean curvature 
+            ### relocate base points for fold spokes such that their lengths are reciprocal of boundary mean curvature
             if i >= num_spokes - num_crest_points:
-                new_radius = min(radius - 1, self.relocate(new_bdry_pt, input_mesh))
-                
+                new_radius = min(radius - 1, self.relocate(new_bdry_pt, self.input_mesh))
+
                 new_base_pt = new_bdry_pt - new_radius * direction
                 srep_poly.GetPoints().SetPoint(id_base_pt, new_base_pt)
 
