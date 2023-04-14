@@ -8,6 +8,8 @@ from audioop import avg
 import numpy as np
 import vtk
 import nlopt
+from .geometry import Geometry
+
 class Refiner:
     """This class optimize an initial s-rep to better fit to the boundary"""
     def __init__(self, surface_mesh):
@@ -57,7 +59,7 @@ class Refiner:
         num_pts = srep_poly.GetNumberOfPoints()
         num_spokes = num_pts // 2
         radii_array = np.zeros(num_spokes)
-        dir_array = np.zeros((num_spokes, 3))
+        dir_array = np.zeros((num_spokes, 2))
         base_array = np.zeros((num_spokes,3))
 
         ### read the parameters from s-rep
@@ -71,7 +73,7 @@ class Refiner:
             direction = (bdry_pt - base_pt) / radius
 
             radii_array[i] = radius
-            dir_array[i, :] = direction
+            dir_array[i, :] = Geometry.cart2sph(direction[None, :])[:, :2].squeeze()
             base_array[i, :] = base_pt
 
         def obj_func(opt_vars, grad=None):
@@ -82,9 +84,11 @@ class Refiner:
             implicit_distance = vtk.vtkImplicitPolyDataDistance()
             implicit_distance.SetInput(self.input_mesh)
             total_loss = 0
+            tmp_radii_array = opt_vars[:num_spokes]
+            tmp_dir_array = np.reshape(opt_vars[num_spokes:], (-1, 2))
             for i in range(num_spokes):
-                radius    = radii_array[i]
-                direction = dir_array[i, :]
+                radius    = tmp_radii_array[i]
+                direction = Geometry.sph2cart(tmp_dir_array[i, :][None, :]).squeeze()
                 base_pt   = base_array[i, :]
                 bdry_pt   = base_pt + radius * direction
 
@@ -93,11 +97,12 @@ class Refiner:
             return total_loss
         ### optimize the variables (i.e., radii, directions)
         opt_vars = np.concatenate((radii_array, dir_array.flatten()))
-        opt = nlopt.opt(nlopt.LN_NEWUOA, len(opt_vars))
+        opt = nlopt.opt(nlopt.LN_BOBYQA, len(opt_vars))
         opt.set_min_objective(obj_func)
         opt.set_maxeval(2000)
         minimizer = opt.optimize(opt_vars)
-        min_dirs = np.reshape(minimizer[num_spokes:], (-1, 3))
+        min_loss = opt.last_optimum_value()
+        opt_dirs = Geometry.sph2cart(np.reshape(minimizer[num_spokes:], (-1, 2)))
 
         ## update radii of s-rep and return the updated
         arr_length = vtk.vtkDoubleArray()
@@ -107,13 +112,12 @@ class Refiner:
         arr_dirs = vtk.vtkDoubleArray()
         arr_dirs.SetNumberOfComponents(3)
         arr_dirs.SetName("spokeDirection")
-        print(num_spokes)
         for i in range(num_spokes):
             id_base_pt = i * 2
             id_bdry_pt = id_base_pt + 1
             base_pt = base_array[i, :]
             radius = minimizer[i]
-            direction = min_dirs[i, :]
+            direction = opt_dirs[i, :]
 
             new_bdry_pt = base_pt + radius * direction
             arr_length.InsertNextValue(radius)
