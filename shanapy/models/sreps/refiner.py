@@ -9,6 +9,7 @@ import numpy as np
 import vtk
 import nlopt
 from .geometry import Geometry
+import pyvista as pv
 
 class Refiner:
     """This class optimize an initial s-rep to better fit to the boundary"""
@@ -46,7 +47,6 @@ class Refiner:
             mean_curvature.append(mean_curvatures.GetPointData().GetArray(0).GetValue(pt_id))
         return 1/ np.mean(mean_curvature)
 
-
     def refine(self, srep, num_crest_points=24):
         """
         The main entry of the refinement
@@ -54,6 +54,7 @@ class Refiner:
         Return spokes poly (a set of spokes that can be visualized) and fold points
         """
         print('Refining ...')
+        
         srep_poly = vtk.vtkPolyData()
         srep_poly.DeepCopy(srep)
         num_pts = srep_poly.GetNumberOfPoints()
@@ -61,6 +62,7 @@ class Refiner:
         radii_array = np.zeros(num_spokes)
         dir_array = np.zeros((num_spokes, 2))
         base_array = np.zeros((num_spokes,3))
+        # grad_img = self.grad_direction_deviation(srep_poly)
 
         ### read the parameters from s-rep
         for i in range(num_spokes):
@@ -86,52 +88,85 @@ class Refiner:
             total_loss = 0
             tmp_radii_array = opt_vars[:num_spokes]
             tmp_dir_array = np.reshape(opt_vars[num_spokes:], (-1, 2))
+
+            bdry_penalties = []
+            dir_penalties = []
+            total_losses = []
             for i in range(num_spokes):
                 radius    = tmp_radii_array[i]
                 direction = Geometry.sph2cart(tmp_dir_array[i, :][None, :]).squeeze()
                 base_pt   = base_array[i, :]
                 bdry_pt   = base_pt + radius * direction
+                grad_bdry = np.zeros(3, np.float32)
+                dist_bdry = implicit_distance.EvaluateFunction(bdry_pt)
+                implicit_distance.EvaluateGradient(bdry_pt, grad_bdry)
 
-                dist = implicit_distance.FunctionValue(bdry_pt)
-                total_loss += dist ** 2
+                spoke_dir = (bdry_pt - base_pt) / (np.linalg.norm(bdry_pt - base_pt) + self.eps)
+                bdry_penalty = np.abs(dist_bdry)
+                dir_penalty = (1 - np.dot(spoke_dir, grad_bdry)) * np.abs(dist_bdry)
+                
+                total_loss += bdry_penalty + dir_penalty # * 0.05
+                bdry_penalties.append(bdry_penalty)
+                dir_penalties.append(dir_penalty)
+                total_losses.append(bdry_penalty + dir_penalty)
+
+            max_bdry_penalty = np.max(bdry_penalties) 
+            max_dir_penalty = np.max(dir_penalties)
+            max_total_loss = np.max(total_losses)
             return total_loss
         ### optimize the variables (i.e., radii, directions)
         opt_vars = np.concatenate((radii_array, dir_array.flatten()))
-        opt = nlopt.opt(nlopt.LN_BOBYQA, len(opt_vars))
+        opt = nlopt.opt(nlopt.LN_NEWUOA, len(opt_vars))
         opt.set_min_objective(obj_func)
         opt.set_maxeval(2000)
         minimizer = opt.optimize(opt_vars)
-        min_loss = opt.last_optimum_value()
-        opt_dirs = Geometry.sph2cart(np.reshape(minimizer[num_spokes:], (-1, 2)))
+        # new_loss = obj_func(minimizer)
+        opt_dirs = np.reshape(minimizer[num_spokes:], (-1, 2))
+        opt_radii = minimizer[:num_spokes]
+        # Identify spokes on spine
+        for i in range(1, num_crest_points//2):
+            avg_radii_up = (opt_radii[i*3] + opt_radii[(num_crest_points - i) * 3]) / 2
+            opt_radii[i*3] = opt_radii[(num_crest_points - i) * 3] = avg_radii_up
 
-        ## update radii of s-rep and return the updated
-        arr_length = vtk.vtkDoubleArray()
-        arr_length.SetNumberOfComponents(1)
-        arr_length.SetName("spokeLength")
+            avg_radii_down = (opt_radii[(i+24)*3] + opt_radii[(num_crest_points - i + 24) * 3]) / 2
+            opt_radii[(i+24)*3] = opt_radii[(num_crest_points - i + 24) * 3] = avg_radii_down
 
-        arr_dirs = vtk.vtkDoubleArray()
-        arr_dirs.SetNumberOfComponents(3)
-        arr_dirs.SetName("spokeDirection")
+            avg_dir_up = (opt_dirs[i*3, :] + opt_dirs[(num_crest_points - i) * 3, :]) / 2
+            opt_dirs[i*3, :] = opt_dirs[(num_crest_points - i) * 3, :] = avg_dir_up
+
+            avg_dir_down = (opt_dirs[(i+24)*3, :] + opt_dirs[(num_crest_points - i + 24) * 3, :]) / 2
+            opt_dirs[(i+24)*3, :] = opt_dirs[(num_crest_points - i + 24) * 3, :] = avg_dir_down
+
+        opt_dirs = Geometry.sph2cart(opt_dirs)
+
+        refined_srep_poly = vtk.vtkPolyData()
+        refined_srep_spokes = vtk.vtkCellArray()
+        refined_points = vtk.vtkPoints()
+        
         for i in range(num_spokes):
             id_base_pt = i * 2
             id_bdry_pt = id_base_pt + 1
             base_pt = base_array[i, :]
-            radius = minimizer[i]
+            radius = opt_radii[i]
             direction = opt_dirs[i, :]
-
             new_bdry_pt = base_pt + radius * direction
-            arr_length.InsertNextValue(radius)
-            arr_dirs.InsertNextTuple(direction)
-            srep_poly.GetPoints().SetPoint(id_bdry_pt, new_bdry_pt)
-
+        
             ### relocate base points for fold spokes such that their lengths are reciprocal of boundary mean curvature
             if i >= num_spokes - num_crest_points:
                 new_radius = min(radius - 1, self.relocate(new_bdry_pt, self.input_mesh))
+                base_pt = new_bdry_pt - new_radius * direction
+           
+            id_base = refined_points.InsertNextPoint(base_pt)
+            id_bdry = refined_points.InsertNextPoint(new_bdry_pt)
+            line_spoke = vtk.vtkLine()
+            line_spoke.GetPointIds().SetId(0, id_base)
+            line_spoke.GetPointIds().SetId(1, id_bdry)
+            refined_srep_spokes.InsertNextCell(line_spoke)
 
-                new_base_pt = new_bdry_pt - new_radius * direction
-                srep_poly.GetPoints().SetPoint(id_base_pt, new_base_pt)
-
-        srep_poly.GetPointData().AddArray(arr_length)
-        srep_poly.GetPointData().AddArray(arr_dirs)
-        srep_poly.Modified()
-        return srep_poly
+            refined_srep_poly.SetPoints(refined_points)
+            refined_srep_poly.SetLines(refined_srep_spokes)
+            # p = pv.Plotter()
+            # p.add_mesh(self.input_mesh, color='white', opacity=0.3)
+            # p.add_mesh(refined_srep_poly, color='white', line_width=4)
+            # p.show()
+        return refined_srep_poly
