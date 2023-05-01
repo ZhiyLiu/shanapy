@@ -12,11 +12,11 @@ class SrepViewer:
     def srep_with_fold_in_surface(self, fold_pts, refined_srep, mesh, initial_srep=None):
         plt = pv.Plotter()
         plt.add_mesh(mesh, color='white', opacity=0.4)
-        plt.add_mesh(refined_srep, color='orange',line_width=4)
+        plt.add_mesh(refined_srep, color='orange',line_width=4, label='Refined s-rep')
         fold_curve = pv.Spline(fold_pts, 1000)
-        plt.add_mesh(fold_curve, line_width=4, color='cornflowerblue')
+        plt.add_mesh(fold_curve, line_width=4, color='cornflowerblue', label='Fold curve')
 
         if initial_srep is not None:
-            plt.add_mesh(initial_srep, line_width=4, color='blue')
-
+            plt.add_mesh(initial_srep, line_width=4, color='blue', label='Initial s-rep')
+        plt.add_legend()
         plt.show()

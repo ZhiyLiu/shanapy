@@ -45,7 +45,7 @@ class Refiner:
         for i in range(pt_ids.GetNumberOfIds()):
             pt_id = pt_ids.GetId(i)
             mean_curvature.append(mean_curvatures.GetPointData().GetArray(0).GetValue(pt_id))
-        return 1/ np.mean(mean_curvature)
+        return 1/ np.abs(np.mean(mean_curvature))
 
     def compute_srad_penalty(self, srep, spoke_offset=0):
         # dx/du, dx/dv, dr/du, dr/dv, ds/du, ds/dv
