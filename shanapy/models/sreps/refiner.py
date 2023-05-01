@@ -141,7 +141,7 @@ class Refiner:
     def update_srep(self, opt_vars, skeletal_points, num_crest_points=24, relocate_fold=False):
         num_spokes = skeletal_points.shape[0]
         opt_dirs = np.reshape(opt_vars[num_spokes:], (-1, 2))
-        opt_radii = opt_vars[:num_spokes]
+        opt_radii = np.exp(opt_vars[:num_spokes])
         # Identify spokes on spine
         for i in range(1, num_crest_points//2):
             avg_radii_up = (opt_radii[i*3] + opt_radii[(num_crest_points - i) * 3]) / 2
@@ -235,7 +235,7 @@ class Refiner:
             dir_penalties = []
             total_losses = []
             for i in range(num_spokes):
-                radius    = tmp_radii_array[i]
+                radius    = np.exp(tmp_radii_array[i])
                 direction = Geometry.sph2cart(tmp_dir_array[i, :][None, :]).squeeze()
                 base_pt   = base_array[i, :]
                 bdry_pt   = base_pt + radius * direction
@@ -247,15 +247,15 @@ class Refiner:
                 bdry_penalty = np.abs(dist_bdry)
                 dir_penalty = (1 - np.dot(spoke_dir, grad_bdry)) * np.abs(dist_bdry)
                 
-                total_loss += bdry_penalty + dir_penalty # * 0.05
+                total_loss += bdry_penalty * 10 + dir_penalty # * 0.05
                 bdry_penalties.append(bdry_penalty)
                 dir_penalties.append(dir_penalty)
                 total_losses.append(bdry_penalty + dir_penalty)
 
-            return total_loss + up_srad_penalty + down_srad_penalty
+            return total_loss + 5 * (up_srad_penalty + down_srad_penalty)
         ### optimize the variables (i.e., radii, directions)
-        opt_vars = np.concatenate((radii_array, dir_array.flatten()))
-        opt = nlopt.opt(nlopt.LN_NEWUOA, len(opt_vars))
+        opt_vars = np.concatenate((np.log(radii_array), dir_array.flatten()))
+        opt = nlopt.opt(nlopt.LN_BOBYQA, len(opt_vars))
         opt.set_min_objective(obj_func)
         opt.set_maxeval(2000)
         minimizer = opt.optimize(opt_vars)
