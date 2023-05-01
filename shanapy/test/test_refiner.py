@@ -55,30 +55,30 @@ initializer = Initializer(num_crest_points)
 initial_srep = initializer.fit(input_mesh)
 
 ## Deteriorate initial s-reps for refinement
-srep_poly = vtk.vtkPolyData()
-srep_poly.DeepCopy(initial_srep)
-srep_new_pts = vtk.vtkPoints()
-num_pts = srep_poly.GetNumberOfPoints()
-num_spokes = num_pts // 2
-for i in range(num_spokes):
-    i_base = i * 2
-    base_pt = np.array(initial_srep.GetPoint(i_base))
-    bdry_pt = np.array(initial_srep.GetPoint(i_base + 1))
-    srep_new_pts.InsertNextPoint(base_pt)
-    if i_base == 14:
-        radius = np.linalg.norm(bdry_pt - base_pt)
-        direction = (bdry_pt - base_pt) / radius
-        new_direction = rotate_vector(direction, np.pi/6)
-        new_bdry_pt = base_pt + new_direction * (radius + 3)
-        srep_new_pts.InsertNextPoint(new_bdry_pt)
-    else:
-        srep_new_pts.InsertNextPoint(bdry_pt)
-srep_poly.SetPoints(srep_new_pts)
-srep_poly.Modified()
+# srep_poly = vtk.vtkPolyData()
+# srep_poly.DeepCopy(initial_srep)
+# srep_new_pts = vtk.vtkPoints()
+# num_pts = srep_poly.GetNumberOfPoints()
+# num_spokes = num_pts // 2
+# for i in range(num_spokes):
+#     i_base = i * 2
+#     base_pt = np.array(initial_srep.GetPoint(i_base))
+#     bdry_pt = np.array(initial_srep.GetPoint(i_base + 1))
+#     srep_new_pts.InsertNextPoint(base_pt)
+#     if i_base == 14:
+#         radius = np.linalg.norm(bdry_pt - base_pt)
+#         direction = (bdry_pt - base_pt) / radius
+#         new_direction = rotate_vector(direction, np.pi/6)
+#         new_bdry_pt = base_pt + new_direction * (radius + 3)
+#         srep_new_pts.InsertNextPoint(new_bdry_pt)
+#     else:
+#         srep_new_pts.InsertNextPoint(bdry_pt)
+# srep_poly.SetPoints(srep_new_pts)
+# srep_poly.Modified()
 
 ## Refine the above s-rep
 refiner = Refiner(input_mesh)
-refined_srep = refiner.refine(srep_poly, num_crest_points)
+refined_srep = refiner.refine(initial_srep, num_crest_points)
 
 ## Collect fold points from refined srep to form a loop (i.e., fold curve)
 fold_pts = []
@@ -89,4 +89,4 @@ fold_pts.append(fold_pts[0])
 
 ## Visualize the s-rep and the input mesh
 viewer = SrepViewer()
-viewer.srep_with_fold_in_surface(fold_pts, refined_srep, input_mesh)
+viewer.srep_with_fold_in_surface(fold_pts, refined_srep, input_mesh, initial_srep)
