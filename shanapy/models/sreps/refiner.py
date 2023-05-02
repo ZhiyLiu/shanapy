@@ -132,7 +132,10 @@ class Refiner:
             ds_du = np.concatenate((ds_du_mat[:, i][None, :], ds_dv_mat[:, i][None, :])) # 2 x 3
             dr_du = np.concatenate((dr_du_mat[:, i][None, :], dr_dv_mat[:, i][None, :]))   # 2 x 1
             q_free_term = ds_du - np.dot(dr_du, spoke_dir_mat[:, i][None, :])
-            q_term = np.dot(Q.T, np.linalg.inv(np.dot(Q, Q.T)))
+            Q_QT = np.dot(Q, Q.T)
+            if np.linalg.det(Q_QT) == 0: continue
+                
+            q_term = np.dot(Q.T, np.linalg.inv(Q_QT))
             r_srad = np.dot(q_free_term, q_term)
             det_r_srad = np.linalg.det(r_srad)
             if det_r_srad < 1: continue
@@ -184,6 +187,10 @@ class Refiner:
 
             refined_srep_poly.SetPoints(refined_points)
             refined_srep_poly.SetLines(refined_srep_spokes)
+        # p = pv.Plotter()
+        # p.add_mesh(refined_srep_poly, color='orange', line_width=4)
+        # p.add_mesh(self.input_mesh, color='white', opacity=0.4)
+        # p.show()
         return refined_srep_poly
     def refine(self, srep, num_crest_points=24):
         """
