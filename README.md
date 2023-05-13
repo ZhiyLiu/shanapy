@@ -5,6 +5,8 @@ This repository is the codebase of the following articles:
 
 > Liu, Z., Schulz, J., Taheri, M., Styner, M., Damon, J., Pizer, S. and Marron, J.S., 2022. Analysis of joint shape variation from multi-object complexes. Journal of Mathematical Imaging and Vision, pp.1-21.
 
+> Liu, Z., Damon, J., Marron, J.S., and Pizer, S., 2023. Geometric and Statistical Models for Analysis of Two-Object Complexes. International Journal of Computer Vision. https://doi.org/10.1007/s11263-023-01800-2
+
 ## Table of Contents
 
 1. [Introduction: what is an s-rep & why is it useful?](#intro)
