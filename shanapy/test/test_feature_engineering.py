@@ -5,7 +5,7 @@ from shanapy.models.stats import SrepFeatures
 from sklearn.decomposition import PCA
 import plotly.express as px
 # distribution of initial s-reps features
-root = 'hippocampi/'
+root = '/path/to/population/folder/'
 os.chdir(root)
 class_names = ["pos", "neg"]
 labels = np.array(['pos'] * 34 + ['neg'] * 143)

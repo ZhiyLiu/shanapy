@@ -1,5 +1,6 @@
 import vtk
 import numpy as np
+import pyvista as pv
 class Initializer:
     def __init__(self, num_crest_points=24):
         """TODO: allow users to config the following parameters"""
@@ -9,6 +10,7 @@ class Initializer:
         self.dt = 0.001
         # determin the resolution of the discrete s-rep
         self.num_crest_points = num_crest_points
+        self.input_mesh = None
     def _get_thin_plate_spline_deform(self, input_target_mesh, input_source_mesh):
         """Compute the deformation via thin plate spline
         from the input target mesh to the input source mesh.
@@ -255,6 +257,13 @@ class Initializer:
         up_spokes_poly.SetLines(up_spokes_cells)
         down_spokes_poly.SetPoints(down_spokes_pts)
         down_spokes_poly.SetLines(down_spokes_cells)
+            
+            # p = pv.Plotter()
+            # p.add_mesh(self.input_mesh, color='white', opacity=0.4)
+            # p.add_mesh(up_spokes_poly, color='orange', line_width=4)
+            # p.add_mesh(down_spokes_poly, color='blue', line_width=4)
+            # p.show()
+
 
         for i in range(num_crest_points):
             id_crest_s = crest_spokes_pts.InsertNextPoint(transformed_crest_skeletal_pts[i, :])
@@ -348,6 +357,7 @@ class Initializer:
         print("Initializing ...")
         # 1. Via mean curvature flow, deform the input mesh to a near-ellipsoid
         near_ellipsoid, tps_list = self._forward_flow(input_mesh)
+        self.input_mesh = input_mesh
 
         # 2. Compute the s-rep that best fit the near-ellipsoid
         srep_poly = self._compute_ellipsoidal_srep(near_ellipsoid)
