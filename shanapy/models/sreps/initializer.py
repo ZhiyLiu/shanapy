@@ -11,6 +11,10 @@ class Initializer:
         # determin the resolution of the discrete s-rep
         self.num_crest_points = num_crest_points
         self.input_mesh = None
+        # reference frame to avoid ambiguity of ellipsoid orientation
+        self.v_ref = np.array([[0.01375808,  0.99966273, -0.02202588],
+                               [0.76425168,  0.00369127,  0.64490754],
+                               [-0.64477134,  0.02570601,  0.76394314]])
     def _get_thin_plate_spline_deform(self, input_target_mesh, input_source_mesh):
         """Compute the deformation via thin plate spline
         from the input target mesh to the input source mesh.
@@ -224,6 +228,15 @@ class Initializer:
         transformed_crest_bdry_pts = np.matmul(crest_bdry_pts, rotation) + input_center
         transformed_crest_skeletal_pts = np.matmul(crest_skeletal_pts, rotation) + input_center
 
+        # p = pv.Plotter()
+        # p.add_mesh(self.input_mesh, color='white', opacity=0.4)
+        # p.add_mesh(pv.Sphere(center=transformed_concate_skeletal_pts[0, :]), color='orange')
+        # p.add_mesh(pv.Sphere(center=transformed_concate_skeletal_pts[1, :]), color='blue')
+        # p.add_mesh(pv.Sphere(center=np.array(self.input_mesh.GetPoint(0))), color='orange')
+        # p.add_mesh(pv.Sphere(center=np.array(self.input_mesh.GetPoint(1))), color='blue')
+        # p.show()
+
+
         ### Convert spokes to visualizable elements
         up_spokes_poly = vtk.vtkPolyData()
         up_spokes_pts = vtk.vtkPoints()
@@ -300,6 +313,16 @@ class Initializer:
         idx = w.argsort()[::-1]
         w = w[idx]
         v = v[:, idx]
+        v_temp = np.copy(v)
+
+        ## align the ellipsoid's orientation with reference ellipsoid v_ref
+        for idx_ref in range(3):
+            for idx_temp in range(3):
+                if np.dot(v[:, idx_temp], self.v_ref[:, idx_ref]) > 0.9:
+                    v_temp[:, idx_ref] = v[:, idx_temp]
+                elif np.dot(v[:, idx_temp], self.v_ref[:, idx_ref]) < -0.9:
+                    v_temp[:, idx_ref] = -v[:, idx_temp]
+        v = v_temp
 
         ## correct the volume
         r0, r1, r2 = np.sqrt(w[0]), np.sqrt(w[1]), np.sqrt(w[2])
