@@ -3,11 +3,7 @@ import os
 import numpy as np
 import pyvista as pv
 from shanapy.models.sreps import Initializer
-from shanapy.visualization import SrepViewer
-from shanapy.models.stats import SrepFeatures
-from sklearn.decomposition import PCA
-import plotly.express as px
-# distribution of initial s-reps features
+
 root = '/path/to/population/mesh/vtks/'
 os.chdir(root)
 for file_name in os.listdir(root):
