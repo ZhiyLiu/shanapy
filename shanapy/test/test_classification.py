@@ -3,7 +3,7 @@ import numpy as np
 from shanapy.models.stats import Classification, SrepFeatures
 
 # distribution of initial s-reps features
-root = '/Users/zhiy/playpen/hippocampi/nick_hipp/'
+root = '/path/to/population/folder/'
 os.chdir(root)
 class_names = ["pos", "neg"]
 labels = np.array([1] * 34 + [0] * 143)
