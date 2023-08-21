@@ -1,5 +1,5 @@
 import numpy as np
-from dwd import DWD
+from dwd.socp_dwd import DWD
 from sklearn import metrics
 from sklearn.model_selection import train_test_split
 
@@ -27,7 +27,7 @@ class Classification:
         y_test = np.array([1] * X_test_pos.shape[0] + [0] * X_test_neg.shape[0])
         print("Partition of data: Training positive (%d/%d), negative (%d/%d). Test pos (%d/%d), neg (%d/%d)."%(X_train_pos.shape[0], num_pos, X_train_neg.shape[0], num_neg, X_test_pos.shape[0], num_pos, X_test_neg.shape[0], num_neg))
         return X_train, X_test, y_train, y_test
-        
+
     @staticmethod
     def classify(X, y, test_size = 0.2):
         aucs = []
@@ -37,7 +37,7 @@ class Classification:
             dwd = DWD().fit(X_train, y_train)
             y_pred = dwd.decision_function(X_test)
             fpr, tpr, thresholds = metrics.roc_curve(y_test, y_pred, pos_label=1)
-            
+
             roc_auc = metrics.auc(fpr, tpr)
             aucs.append(roc_auc)
         return np.mean(aucs)

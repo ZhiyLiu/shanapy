@@ -36,7 +36,7 @@ class SrepFeatures():
     def euclideanized_srep_features(srep_file_name):
         """
         Euclideanize spokes features and skeletal points given a srep file
-        Output tuples: skeletal_pts (3 x n), dirs (3 x n), radii (1 x n), where n denotes 
+        Output tuples: skeletal_pts (3 x n), dirs (3 x n), radii (1 x n), where n denotes
                         the number of skeletal points
         """
         skeletal_pts, dirs, radii = SrepFeatures.default_srep_features(srep_file_name)
@@ -46,7 +46,7 @@ class SrepFeatures():
         pns_model.fit()
         euc_dirs, PNS_coords_dirs = pns_model.output
 
-        # Euclideanize skeletal points 
+        # Euclideanize skeletal points
         pdms_xs = skeletal_pts[:, ::3]
         pdms_ys = skeletal_pts[:, 1::3]
         pdms_zs = skeletal_pts[:, 2::3]
@@ -67,10 +67,7 @@ class SrepFeatures():
 
         # Commensurate radii
         log_radii = np.log(radii)
-        geo_mean = np.exp(np.mean(log_radii, dim=-1))
+        geo_mean = np.exp(np.mean(log_radii, axis=-1))
         radii_comm = (log_radii - geo_mean)
 
         return euc_pdm, euc_dirs, radii_comm
-
-    
-
