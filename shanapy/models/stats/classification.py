@@ -20,7 +20,7 @@ class Classification:
                                                             pos_X, pos_y, test_size=test_size, random_state=rand_seed)
         neg_test_size = (1-num_pos * (1-test_size) / num_neg)
         X_train_neg, X_test_neg, y_train_neg, y_test_neg = train_test_split(\
-                                                            neg_X, neg_y, test_size=neg_test_size, random_state=rand_seed)
+                                                            neg_X, neg_y, test_size=test_size, random_state=rand_seed)
         X_train = np.concatenate((X_train_pos, X_train_neg))
         y_train = np.array([1] * X_train_pos.shape[0] + [0] * X_train_neg.shape[0])
         X_test = np.concatenate((X_test_pos, X_test_neg))

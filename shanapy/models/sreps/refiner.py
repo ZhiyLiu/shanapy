@@ -2,12 +2,13 @@
 The refinement aims to optimize the interior geometry represented by the s-rep.
 This optimization ought to consider i) the goodness of fitting to the boundary geometry and
 ii) the smoothness of interior radial distance level surfaces.
-As of Dec. 27, 2021, the refinement in this python package can optimize the spokes' lengths.
+As of Aug 22, 2023, the refinement in this python package can optimize the spokes' lengths and directions.
 """
 from audioop import avg
 import numpy as np
 import vtk
 import nlopt
+import time
 from .geometry import Geometry
 import pyvista as pv
 
@@ -17,7 +18,10 @@ class Refiner:
         ## TODO: Set parameters of refinement
         self.eps = np.finfo(float).eps
         self.input_mesh = surface_mesh
-        pass
+        self.restrict_param_range = True
+        self.min_dir_change = 0.98 # cos\theta ≥ 0.9 ==> theta ≤ 11 degree
+        self.max_radii_change = 0.1 # constrained into 10% radii change range
+
     def relocate(self, bdry_pt, input_mesh):
         """
         Relocate base points of a (fold) spoke with the two end points: base_pt and bdry_pt,
@@ -92,21 +96,21 @@ class Refiner:
                 forward_v_id[i] = 72 + ((i+1)//3 - 1)
             else:
                 forward_v_id[i] = i + 1
-            
+
             backward_v_id[i] = i - 1 if i not in {0, 36} else max(3, i-3)
             if (i % 3) == 0 and i not in {0, 36}:
                 backward_v_id[i] = (num_crest_pt - (i // 3)) * 3 + 1
 
             forward_u_id[i] = i + 3
             backward_u_id[i] = i - 3 if i not in {0, 1, 2, 36, 37, 38} else -1
-        
+
         # merge smooth skeletal points and fold points
         all_skeletal_points = np.concatenate((skeletal_pt_mat, fold_pt_mat), axis=1)
         all_spoke_radii = np.concatenate((spoke_rad_mat, fold_rad_mat), axis=1)
         all_spokes = np.concatenate((spoke_vector_mat, fold_vec_mat), axis=1)
-        dp_du_mat = np.zeros((3, 72)) 
+        dp_du_mat = np.zeros((3, 72))
         dp_dv_mat = np.zeros((3, 72))
-        ds_du_mat = np.zeros((3, 72)) 
+        ds_du_mat = np.zeros((3, 72))
         ds_dv_mat = np.zeros((3, 72))
         dr_du_mat = np.zeros((1, 72))
         dr_dv_mat = np.zeros((1, 72))
@@ -125,7 +129,7 @@ class Refiner:
                 if backward_u_id[i] != -1 else all_spoke_radii[:, forward_u_id[i]] - all_spoke_radii[:, i]
             ds_du_mat[:, i] = 0.5 * (all_spokes[:, forward_u_id[i]] - all_spokes[:, backward_u_id[i]]) \
                 if backward_u_id[i] != -1 else all_spokes[:, forward_u_id[i]] - all_spokes[:, i]
-            
+
             ut_u_minus_I = np.outer(spoke_dir_mat[:, i], spoke_dir_mat[:, i]) - np.eye(3)
 
             Q = np.concatenate((np.dot(dp_du_mat[:, i][None, :], ut_u_minus_I), np.dot(dp_dv_mat[:, i][None, :], ut_u_minus_I)))
@@ -134,7 +138,7 @@ class Refiner:
             q_free_term = ds_du - np.dot(dr_du, spoke_dir_mat[:, i][None, :])
             Q_QT = np.dot(Q, Q.T)
             if np.linalg.det(Q_QT) == 0: continue
-                
+
             q_term = np.dot(Q.T, np.linalg.inv(Q_QT))
             r_srad = np.dot(q_free_term, q_term)
             det_r_srad = np.linalg.det(r_srad)
@@ -164,7 +168,7 @@ class Refiner:
         refined_srep_poly = vtk.vtkPolyData()
         refined_srep_spokes = vtk.vtkCellArray()
         refined_points = vtk.vtkPoints()
-        
+
         for i in range(num_spokes):
             id_base_pt = i * 2
             id_bdry_pt = id_base_pt + 1
@@ -172,12 +176,12 @@ class Refiner:
             radius = opt_radii[i]
             direction = opt_dirs[i, :]
             new_bdry_pt = base_pt + radius * direction
-        
+
             ### relocate base points for fold spokes such that their lengths are reciprocal of boundary mean curvature
             if relocate_fold and i >= num_spokes - num_crest_points:
                 new_radius = min(radius - 1, self.relocate(new_bdry_pt, self.input_mesh))
                 base_pt = new_bdry_pt - new_radius * direction
-           
+
             id_base = refined_points.InsertNextPoint(base_pt)
             id_bdry = refined_points.InsertNextPoint(new_bdry_pt)
             line_spoke = vtk.vtkLine()
@@ -199,7 +203,7 @@ class Refiner:
         Return spokes poly (a set of spokes that can be visualized) and fold points
         """
         print('Refining ...')
-        
+
         srep_poly = vtk.vtkPolyData()
         srep_poly.DeepCopy(srep)
         num_pts = srep_poly.GetNumberOfPoints()
@@ -207,6 +211,7 @@ class Refiner:
         radii_array = np.zeros(num_spokes)
         dir_array = np.zeros((num_spokes, 2))
         base_array = np.zeros((num_spokes,3))
+        cart_dir_array = np.zeros((num_spokes,3))
 
         ### read the parameters from s-rep
         for i in range(num_spokes):
@@ -221,6 +226,7 @@ class Refiner:
             radii_array[i] = radius
             dir_array[i, :] = Geometry.cart2sph(direction[None, :])[:, :2].squeeze()
             base_array[i, :] = base_pt
+            cart_dir_array[i, :] = direction
 
         def obj_func(opt_vars, grad=None):
             """
@@ -231,7 +237,7 @@ class Refiner:
             temp_srep = self.update_srep(temp_vars, base_array)
             up_srad_penalty = self.compute_srad_penalty(temp_srep)
             down_srad_penalty = self.compute_srad_penalty(temp_srep, 72)
-            
+
             implicit_distance = vtk.vtkImplicitPolyDataDistance()
             implicit_distance.SetInput(self.input_mesh)
             total_loss = 0
@@ -244,6 +250,12 @@ class Refiner:
             for i in range(num_spokes):
                 radius    = np.exp(tmp_radii_array[i])
                 direction = Geometry.sph2cart(tmp_dir_array[i, :][None, :]).squeeze()
+
+                if self.restrict_param_range and np.dot(direction, cart_dir_array[i, :]) < self.min_dir_change:
+                    # print('Direction change is more than expected.')
+                    return np.inf
+                if self.restrict_param_range and np.abs(radius - radii_array[i]) > self.max_radii_change * radii_array[i]:
+                    return np.inf
                 base_pt   = base_array[i, :]
                 bdry_pt   = base_pt + radius * direction
                 grad_bdry = np.zeros(3, np.float32)
@@ -253,7 +265,7 @@ class Refiner:
                 spoke_dir = (bdry_pt - base_pt) / (np.linalg.norm(bdry_pt - base_pt) + self.eps)
                 bdry_penalty = np.abs(dist_bdry)
                 dir_penalty = (1 - np.dot(spoke_dir, grad_bdry)) * np.abs(dist_bdry)
-                
+
                 total_loss += bdry_penalty * 10 + dir_penalty # * 0.05
                 bdry_penalties.append(bdry_penalty)
                 dir_penalties.append(dir_penalty)
@@ -264,9 +276,9 @@ class Refiner:
         opt_vars = np.concatenate((np.log(radii_array), dir_array.flatten()))
         opt = nlopt.opt(nlopt.LN_BOBYQA, len(opt_vars))
         opt.set_min_objective(obj_func)
-        opt.set_maxeval(2000)
+        opt.set_maxeval(1500)
         minimizer = opt.optimize(opt_vars)
         refined_srep_poly = self.update_srep(minimizer, base_array, relocate_fold=True)
         # new_loss = obj_func(minimizer)
-        
+
         return refined_srep_poly

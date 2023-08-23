@@ -5,7 +5,7 @@ import pyvista as pv
 from shanapy.models.sreps import Initializer, Refiner
 
 ## initialization + refinement of s-reps
-root = '/path/to/population/mesh/vtks/'
+root = '/path/to/population/folder/'
 class_name = ['pos', 'neg']
 for class_label in class_name:
     mesh_folder = root + '/' + class_label + '_vtk/'
@@ -27,12 +27,12 @@ for class_label in class_name:
 
         output_file_name = file_name.split('.')[0]
         writer = vtk.vtkPolyDataWriter()
-        writer.SetFileName(root + "/" + class_label + "_initial_sreps/" + output_file_name + "_init.vtk")
-        writer.SetInputData(initial_srep)
-        writer.Update()
-
-        # refiner = Refiner(input_mesh)
-        # refined_srep = refiner.refine(initial_srep, num_crest_points)
-        # writer.SetFileName(root + "/" + class_label + "_sreps/" + output_file_name + ".vtk")
-        # writer.SetInputData(refined_srep)
+        # writer.SetFileName(root + "/" + class_label + "_initial_sreps/" + output_file_name + "_init.vtk")
+        # writer.SetInputData(initial_srep)
         # writer.Update()
+
+        refiner = Refiner(input_mesh)
+        refined_srep = refiner.refine(initial_srep, num_crest_points)
+        writer.SetFileName(root + "/" + class_label + "_sreps_refined/" + output_file_name + ".vtk")
+        writer.SetInputData(refined_srep)
+        writer.Update()

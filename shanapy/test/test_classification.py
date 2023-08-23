@@ -9,7 +9,7 @@ class_names = ["pos", "neg"]
 labels = np.array([1] * 34 + [0] * 143)
 all_feats = []
 for class_name in class_names:
-    directory = class_name + "_initial_sreps"
+    directory = class_name + "_sreps_refined"
     feats_a_group = []
     for file_name in os.listdir(directory):
         if file_name.split('.')[-1] != 'vtk': continue
