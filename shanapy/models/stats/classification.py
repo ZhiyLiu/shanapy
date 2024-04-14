@@ -29,9 +29,9 @@ class Classification:
         return X_train, X_test, y_train, y_test
 
     @staticmethod
-    def classify(X, y, test_size = 0.2):
+    def classify(X, y, test_size = 0.2, num_holdouts=1000):
         aucs = []
-        for rand_seed in range(1000):
+        for rand_seed in range(num_holdouts):
             print(rand_seed)
             X_train, X_test, y_train, y_test = Classification.partition(X, y, test_size, rand_seed)
             dwd = DWD().fit(X_train, y_train)
