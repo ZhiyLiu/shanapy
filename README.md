@@ -1,5 +1,21 @@
-SHANAPY: SHape ANAlysis PYthon package using s-reps
-===
+# SHANAPY: SHape ANAlysis PYthon package using s-reps
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub stars](https://img.shields.io/github/stars/ZhiyLiu/shanapy?style=social)](https://github.com/ZhiyLiu/shanapy/stargazers)
+
+Fit skeletal representations (s-reps) to 3D anatomical shapes — and analyse the population with correspondences that boundary geometry alone cannot give.
+
+![Onion-skin implied boundaries](figures/onion_skins_3d.png)
+
+**In one line:** s-reps replace a noisy boundary with a skeleton + spokes, so the implied ("onion-skin") boundary is smooth, corruption-free, and comparable across a population.
+
+## What it does
+
+1. **Initialize** a discrete s-rep for an object (e.g. a hippocampus).
+2. **Refine** the fit.
+3. **Interpolate** to denser spokes and implied boundary surfaces.
+4. **Fit a PNS model** to turn non-Euclidean shape data into Euclidean scores for statistics.
+
 This repository is the codebase of the following articles:
 > Liu, Z., Hong, J., Vicory, J., Damon, J.N. and Pizer, S.M., 2021. Fitting unbranching skeletal structures to objects. Medical image analysis, 70, p.102020.
 
@@ -42,7 +58,7 @@ A formal definition of an s-rep and the discretization of an s-rep can be found 
 ### Anatomical shape analysis with s-reps
 
 Anatomical shapes are typically obtained from segmentation of medical images. It is often problematic to use boundary geometry in analyzing a population of anatomical shapes for the following reasons.
-First, the boundary is often noisy, sometimes correupted (see the figure (a) below). These noise and corruptions unexpectedly draw too much attention in statistical analysis.
+First, the boundary is often noisy, sometimes corrupted (see the figure (a) below). These noise and corruptions unexpectedly draw too much attention in statistical analysis.
 Therefore, the results from analyzing boundaries can be biased and difficult to generalize to new shapes.
 Second, it is difficult to establish good correspondences on 3D objects. There exist methods (e.g., SPHARM-PDM) producing mathematical landmarks of an object.
 However, the correspondences of these landmarks across a population can be not anatomically reasonable (see the figure (b) below).
@@ -81,7 +97,7 @@ $ cd ~
 $ git clone https://github.com/ZhiyLiu/shanapy.git
 $ cd shanapy
 
-## create & activate a virtual envirionment
+## create & activate a virtual environment
 ## assume the anaconda has been installed
 $ conda create -n shanapy python=3.7 anaconda
 $ source activate shanapy
@@ -156,7 +172,7 @@ $ python shanapy/test/test_pns.py
 ---
 ## Acknowledgement
 
-This project is adviced by Stephen M. Pizer, J. S. Marron and James N. Damon.
+This project is advised by Stephen M. Pizer, J. S. Marron and James N. Damon.
 J. Hong initiates this project. J. Vicory and B. Paniagua significantly contributed to this project.
 Thanks to M. Styner for providing insightful comments and experimental data.
 Special thanks to my great colleagues A. Krishna, M. Taheri, N. Tapp-Hughes, A. Sharma and J. Schulz for their feedback and contributions.

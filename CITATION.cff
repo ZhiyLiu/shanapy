@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use shanapy, please cite the MedIA 2021 paper below."
+title: "shanapy: SHape ANAlysis PYthon package using s-reps"
+version: 1.0.0
+# date-released: TODO — uncomment and set to the v1.0.0 tag date (YYYY-MM-DD) when you cut the release
+license: MIT
+repository-code: "https://github.com/ZhiyLiu/shanapy"
+authors:
+  - family-names: Liu
+    given-names: Zhiyuan
+preferred-citation:
+  type: article
+  authors:
+    - family-names: Liu
+      given-names: Zhiyuan
+    - family-names: Hong
+      given-names: J.
+    - family-names: Vicory
+      given-names: J.
+    - family-names: Damon
+      given-names: J. N.
+    - family-names: Pizer
+      given-names: S. M.
+  title: "Fitting unbranching skeletal structures to objects"
+  journal: "Medical Image Analysis"
+  volume: 70
+  year: 2021
+  start: 102020
